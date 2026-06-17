@@ -30,6 +30,7 @@ public class Main {
             String outputFile = null;
             boolean appendOutput = false;
             String errorFile = null;
+            boolean appendError = false;
             List<String> filteredParts = new ArrayList<>();
 
             for (int i = 0; i < parts.length; i++) {
@@ -48,6 +49,13 @@ public class Main {
                 } else if (parts[i].equals("2>")) {
                     if (i + 1 < parts.length) {
                         errorFile = parts[i + 1];
+                        appendError = false;
+                        i++;
+                    }
+                } else if (parts[i].equals("2>>")) {
+                    if (i + 1 < parts.length) {
+                        errorFile = parts[i + 1];
+                        appendError = true;
                         i++;
                     }
                 } else {
@@ -87,7 +95,7 @@ public class Main {
                     out = new java.io.PrintStream(new java.io.FileOutputStream(outFile, appendOutput));
                 }
                 if (errFile != null) {
-                    errOut = new java.io.PrintStream(new java.io.FileOutputStream(errFile));
+                    errOut = new java.io.PrintStream(new java.io.FileOutputStream(errFile, appendError));
                 }
 
                 if (cmd.equals("exit")) {
@@ -201,7 +209,11 @@ public class Main {
                             }
                         }
                         if (errFile != null) {
-                            pb.redirectError(errFile);
+                            if (appendError) {
+                                pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
+                            } else {
+                                pb.redirectError(errFile);
+                            }
                         }
 
                         // Prepend the executable's parent directory to PATH so
