@@ -4,22 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.io.PrintWriter;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 public class Main {
     // Tracks the current working directory for the shell, updated by cd builtin
     private static File currentDirectory = new File(System.getProperty("user.dir"));
 
     public static void main(String[] args) throws Exception {
-        Scanner sc = new Scanner(System.in);
+        Terminal terminal = TerminalBuilder.builder().system(true).build();
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(terminal)
+                .completer(new StringsCompleter("echo", "exit"))
+                .build();
 
         while (true) {
-            System.out.print("$ ");
-            System.out.flush();
-
-            if (!sc.hasNextLine())
+            String command;
+            try {
+                command = lineReader.readLine("$ ");
+            } catch (org.jline.reader.EndOfFileException e) {
                 break;
-
-            String command = sc.nextLine();
+            } catch (org.jline.reader.UserInterruptException e) {
+                continue;
+            }
             String trimmed = command.trim();
 
             if (trimmed.isEmpty())
