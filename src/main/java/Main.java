@@ -73,9 +73,13 @@ public class Main {
             }
 
             java.io.PrintStream out = System.out;
+            java.io.PrintStream errOut = System.out;
             try {
                 if (outFile != null) {
                     out = new java.io.PrintStream(new java.io.FileOutputStream(outFile));
+                }
+                if (errFile != null) {
+                    errOut = new java.io.PrintStream(new java.io.FileOutputStream(errFile));
                 }
 
                 if (cmd.equals("exit")) {
@@ -124,17 +128,17 @@ public class Main {
                         if (newDir.exists() && newDir.isDirectory()) {
                             currentDirectory = newDir;
                         } else {
-                            System.out.println("cd: " + parts[1] + ": No such file or directory");
+                            errOut.println("cd: " + parts[1] + ": No such file or directory");
                         }
                     } catch (Exception e) {
-                        System.out.println("cd: " + parts[1] + ": No such file or directory");
+                        errOut.println("cd: " + parts[1] + ": No such file or directory");
                     }
                 }
             }
 
             else if (cmd.equals("type")) {
                 if (parts.length < 2) {
-                    System.out.println("type: missing operand");
+                    errOut.println("type: missing operand");
                 } else {
                     String target = parts[1];
 
@@ -150,12 +154,11 @@ public class Main {
                         if (file != null) {
                             out.println(target + " is " + file.getAbsolutePath());
                         } else {
-                            System.out.println(target + ": not found");
+                            errOut.println(target + ": not found");
                         }
                     }
                 }
             }
-
             else {
                 File file = findExecutable(cmd);
 
@@ -167,6 +170,16 @@ public class Main {
 
                         for (int i = 1; i < parts.length; i++) {
                             commandList.add(parts[i]);
+                        }
+
+                        // Close file streams before ProcessBuilder starts so it can take over the files
+                        if (out != System.out) {
+                            out.close();
+                            out = System.out;
+                        }
+                        if (errOut != System.out) {
+                            errOut.close();
+                            errOut = System.out;
                         }
 
                         ProcessBuilder pb = new ProcessBuilder(commandList);
@@ -192,12 +205,15 @@ public class Main {
                         e.printStackTrace();
                     }
                 } else {
-                    System.out.println(cmd + ": command not found");
+                    errOut.println(cmd + ": command not found");
                 }
             } // end of else block for external commands
         } finally { // end of try block started before the if-else chain
             if (out != System.out) {
                 out.close();
+            }
+            if (errOut != System.out) {
+                errOut.close();
             }
         }
     } // end of while (true)
