@@ -56,16 +56,30 @@ public class Main {
 
             // cd
             else if (cmd.equals("cd")) {
-                if (parts.length > 1) {
-                    File newDir = new File(parts[1]);
+    if (parts.length > 1) {
+        File newDir;
 
-                    if (newDir.exists() && newDir.isDirectory()) {
-                        currentDirectory = newDir.getAbsoluteFile();
-                    } else {
-                        System.out.println("cd: " + parts[1] + ": No such file or directory");
-                    }
-                }
+        if (new File(parts[1]).isAbsolute()) {
+            // Absolute path
+            newDir = new File(parts[1]);
+        } else {
+            // Relative path (./, ../, dirname, etc.)
+            newDir = new File(currentDirectory, parts[1]);
+        }
+
+        try {
+            newDir = newDir.getCanonicalFile();
+
+            if (newDir.exists() && newDir.isDirectory()) {
+                currentDirectory = newDir;
+            } else {
+                System.out.println("cd: " + parts[1] + ": No such file or directory");
             }
+        } catch (Exception e) {
+            System.out.println("cd: " + parts[1] + ": No such file or directory");
+        }
+    }
+}
 
             // type
             else if (cmd.equals("type")) {
