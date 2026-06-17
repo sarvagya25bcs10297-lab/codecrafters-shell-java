@@ -1,4 +1,6 @@
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -21,7 +23,7 @@ public class Main {
                 continue;
             }
 
-            String[] parts = trimmed.split("\\s+");
+            String[] parts = parseCommand(trimmed);
             String cmd = parts[0];
 
             // exit
@@ -31,7 +33,7 @@ public class Main {
                     try {
                         status = Integer.parseInt(parts[1]);
                     } catch (NumberFormatException e) {
-                        // Ignore invalid status
+                        // ignore
                     }
                 }
                 System.exit(status);
@@ -46,7 +48,7 @@ public class Main {
                         sb.append(" ");
                     }
                 }
-                System.out.println(sb.toString());
+                System.out.println(sb);
             }
 
             // pwd
@@ -55,34 +57,34 @@ public class Main {
             }
 
             // cd
-           else if (cmd.equals("cd")) {
-    if (parts.length > 1) {
-        String path = parts[1];
-        File newDir;
+            else if (cmd.equals("cd")) {
+                if (parts.length > 1) {
+                    String path = parts[1];
+                    File newDir;
 
-        if (path.equals("~")) {
-            path = System.getenv("HOME");
-        }
+                    if (path.equals("~")) {
+                        path = System.getenv("HOME");
+                    }
 
-        if (new File(path).isAbsolute()) {
-            newDir = new File(path);
-        } else {
-            newDir = new File(currentDirectory, path);
-        }
+                    if (new File(path).isAbsolute()) {
+                        newDir = new File(path);
+                    } else {
+                        newDir = new File(currentDirectory, path);
+                    }
 
-        try {
-            newDir = newDir.getCanonicalFile();
+                    try {
+                        newDir = newDir.getCanonicalFile();
 
-            if (newDir.exists() && newDir.isDirectory()) {
-                currentDirectory = newDir;
-            } else {
-                System.out.println("cd: " + parts[1] + ": No such file or directory");
+                        if (newDir.exists() && newDir.isDirectory()) {
+                            currentDirectory = newDir;
+                        } else {
+                            System.out.println("cd: " + parts[1] + ": No such file or directory");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("cd: " + parts[1] + ": No such file or directory");
+                    }
+                }
             }
-        } catch (Exception e) {
-            System.out.println("cd: " + parts[1] + ": No such file or directory");
-        }
-    }
-}
 
             // type
             else if (cmd.equals("type")) {
@@ -110,7 +112,7 @@ public class Main {
                 }
             }
 
-            // external command
+            // external commands
             else {
                 File file = findExecutable(cmd);
 
@@ -122,7 +124,6 @@ public class Main {
 
                         Process process = pb.start();
                         process.waitFor();
-
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -131,6 +132,33 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static String[] parseCommand(String input) {
+        List<String> args = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuotes = false;
+
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+
+            if (c == '\'') {
+                inSingleQuotes = !inSingleQuotes;
+            } else if (Character.isWhitespace(c) && !inSingleQuotes) {
+                if (current.length() > 0) {
+                    args.add(current.toString());
+                    current.setLength(0);
+                }
+            } else {
+                current.append(c);
+            }
+        }
+
+        if (current.length() > 0) {
+            args.add(current.toString());
+        }
+
+        return args.toArray(new String[0]);
     }
 
     private static File findExecutable(String target) {
