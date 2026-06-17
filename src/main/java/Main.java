@@ -140,11 +140,19 @@ public class Main {
 
     boolean inSingleQuotes = false;
     boolean inDoubleQuotes = false;
+    boolean escaping = false;
 
     for (int i = 0; i < input.length(); i++) {
         char c = input.charAt(i);
 
-        if (c == '\'' && !inDoubleQuotes) {
+        if (escaping) {
+            current.append(c);
+            escaping = false;
+        }
+        else if (c == '\\' && !inSingleQuotes && !inDoubleQuotes) {
+            escaping = true;
+        }
+        else if (c == '\'' && !inDoubleQuotes) {
             inSingleQuotes = !inSingleQuotes;
         }
         else if (c == '"' && !inSingleQuotes) {
@@ -159,6 +167,10 @@ public class Main {
         else {
             current.append(c);
         }
+    }
+
+    if (escaping) {
+        current.append('\\');
     }
 
     if (current.length() > 0) {
