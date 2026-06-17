@@ -114,25 +114,36 @@ public class Main {
 
             // external commands
             else {
-                File file = findExecutable(cmd);
+    File file = findExecutable(cmd);
 
-                if (file != null) {
-                    try {
-                        ProcessBuilder pb = new ProcessBuilder(parts);
-                        pb.directory(currentDirectory);
-                        pb.inheritIO();
+    if (file != null) {
+        try {
+            List<String> commandList = new ArrayList<>();
 
-                        Process process = pb.start();
-                        process.waitFor();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    System.out.println(cmd + ": command not found");
-                }
+            // Use the full path to the executable
+            commandList.add(file.getAbsolutePath());
+
+            // Add all arguments after the executable name
+            for (int i = 1; i < parts.length; i++) {
+                commandList.add(parts[i]);
             }
+
+            ProcessBuilder pb = new ProcessBuilder(commandList);
+            pb.directory(currentDirectory);
+            pb.inheritIO();
+
+            Process process = pb.start();
+            process.waitFor();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    } else {
+        System.out.println(cmd + ": command not found");
     }
+}
+        }
+}
 
     private static String[] parseCommand(String input) {
     List<String> args = new ArrayList<>();
