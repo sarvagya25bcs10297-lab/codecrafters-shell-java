@@ -135,31 +135,38 @@ public class Main {
     }
 
     private static String[] parseCommand(String input) {
-        List<String> args = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inSingleQuotes = false;
+    List<String> args = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
 
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
+    boolean inSingleQuotes = false;
+    boolean inDoubleQuotes = false;
 
-            if (c == '\'') {
-                inSingleQuotes = !inSingleQuotes;
-            } else if (Character.isWhitespace(c) && !inSingleQuotes) {
-                if (current.length() > 0) {
-                    args.add(current.toString());
-                    current.setLength(0);
-                }
-            } else {
-                current.append(c);
+    for (int i = 0; i < input.length(); i++) {
+        char c = input.charAt(i);
+
+        if (c == '\'' && !inDoubleQuotes) {
+            inSingleQuotes = !inSingleQuotes;
+        }
+        else if (c == '"' && !inSingleQuotes) {
+            inDoubleQuotes = !inDoubleQuotes;
+        }
+        else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
+            if (current.length() > 0) {
+                args.add(current.toString());
+                current.setLength(0);
             }
         }
-
-        if (current.length() > 0) {
-            args.add(current.toString());
+        else {
+            current.append(c);
         }
-
-        return args.toArray(new String[0]);
     }
+
+    if (current.length() > 0) {
+        args.add(current.toString());
+    }
+
+    return args.toArray(new String[0]);
+}
 
     private static File findExecutable(String target) {
         if (target.contains("/") || target.contains("\\")) {
