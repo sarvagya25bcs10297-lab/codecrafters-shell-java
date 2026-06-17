@@ -3,6 +3,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.io.PrintWriter;
 
 public class Main {
     // Tracks the current working directory for the shell, updated by cd builtin
@@ -25,9 +26,41 @@ public class Main {
                 continue;
 
             String[] parts = parseCommand(trimmed);
+
+            String outputFile = null;
+            List<String> filteredParts = new ArrayList<>();
+
+            for (int i = 0; i < parts.length; i++) {
+                if (parts[i].equals(">") || parts[i].equals("1>")) {
+                    if (i + 1 < parts.length) {
+                        outputFile = parts[i + 1];
+                    }
+                    break;
+                }
+                filteredParts.add(parts[i]);
+            }
+
+            parts = filteredParts.toArray(new String[0]);
             String cmd = parts[0];
 
-            if (cmd.equals("exit")) {
+            File outFile = null;
+            if (outputFile != null) {
+                outFile = new File(outputFile);
+                if (!outFile.isAbsolute()) {
+                    outFile = new File(currentDirectory, outputFile);
+                }
+                if (outFile.getParentFile() != null) {
+                    outFile.getParentFile().mkdirs();
+                }
+            }
+
+            java.io.PrintStream out = System.out;
+            try {
+                if (outFile != null) {
+                    out = new java.io.PrintStream(new java.io.FileOutputStream(outFile));
+                }
+
+                if (cmd.equals("exit")) {
                 int status = 0;
                 if (parts.length > 1) {
                     try {
@@ -45,11 +78,11 @@ public class Main {
                         sb.append(" ");
                     sb.append(parts[i]);
                 }
-                System.out.println(sb);
+                out.println(sb);
             }
 
             else if (cmd.equals("pwd")) {
-                System.out.println(currentDirectory.getAbsolutePath());
+                out.println(currentDirectory.getAbsolutePath());
             }
 
             else if (cmd.equals("cd")) {
@@ -92,12 +125,12 @@ public class Main {
                             || target.equals("pwd")
                             || target.equals("cd")
                             || target.equals("type")) {
-                        System.out.println(target + " is a shell builtin");
+                        out.println(target + " is a shell builtin");
                     } else {
                         File file = findExecutable(target);
 
                         if (file != null) {
-                            System.out.println(target + " is " + file.getAbsolutePath());
+                            out.println(target + " is " + file.getAbsolutePath());
                         } else {
                             System.out.println(target + ": not found");
                         }
@@ -121,6 +154,9 @@ public class Main {
                         ProcessBuilder pb = new ProcessBuilder(commandList);
                         pb.directory(currentDirectory);
                         pb.inheritIO();
+                        if (outFile != null) {
+                            pb.redirectOutput(outFile);
+                        }
 
                         // Prepend the executable's parent directory to PATH so
                         // ProcessBuilder can locate the binary by its basename.
@@ -137,9 +173,14 @@ public class Main {
                 } else {
                     System.out.println(cmd + ": command not found");
                 }
+            } // end of else block for external commands
+        } finally { // end of try block started before the if-else chain
+            if (out != System.out) {
+                out.close();
             }
         }
-    }
+    } // end of while (true)
+} // end of main
 
     private static String[] parseCommand(String input) {
         List<String> args = new ArrayList<>();
@@ -203,8 +244,7 @@ public class Main {
                         // Trailing backslash, treat as literal
                         current.append('\\');
                     }
-                }
-                else if (Character.isWhitespace(c)) {
+                } else if (Character.isWhitespace(c)) {
                     if (current.length() > 0) {
                         args.add(current.toString());
                         current.setLength(0);
@@ -225,7 +265,8 @@ public class Main {
     }
 
     private static File findExecutable(String target) {
-        // Only treat '/' as a path separator. Backslashes are considered part of the filename.
+        // Only treat '/' as a path separator. Backslashes are considered part of the
+        // filename.
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         if (target.contains("/")) {
             File file = new File(target);
