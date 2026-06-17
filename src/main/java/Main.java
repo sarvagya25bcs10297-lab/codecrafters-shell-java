@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Main {
+    // Tracks the current working directory for the shell, updated by cd builtin
+    private static File currentDirectory = new File(System.getProperty("user.dir"));
+
     public static void main(String[] args) throws Exception {
         Scanner sc = new Scanner(System.in);
-        File currentDirectory = new File(System.getProperty("user.dir"));
 
         while (true) {
             System.out.print("$ ");
@@ -159,15 +161,12 @@ public class Main {
                     if (i + 1 < input.length()) {
                         char next = input.charAt(i + 1);
 
-                        // Only \" is special in this stage
-                        if (next == '"') {
-                            current.append('"');
-                            i++;
-                        } else {
-                            // Preserve the backslash and the next character
-                            current.append('\\');
+                        // Only ", \, $, ` are special in double quotes
+                        if (next == '"' || next == '\\' || next == '$' || next == '`') {
                             current.append(next);
                             i++;
+                        } else {
+                            current.append(c);
                         }
                     } else {
                         current.append('\\');
@@ -189,14 +188,15 @@ public class Main {
                 }
 
                 else if (c == '\\') {
+                    // Escape next character (including whitespace) to be part of the token
                     if (i + 1 < input.length()) {
                         current.append(input.charAt(i + 1));
-                        i++;
+                        i++; // skip the escaped character
                     } else {
+                        // Trailing backslash, treat as literal
                         current.append('\\');
                     }
                 }
-
                 else if (Character.isWhitespace(c)) {
                     if (current.length() > 0) {
                         args.add(current.toString());
@@ -218,20 +218,28 @@ public class Main {
     }
 
     private static File findExecutable(String target) {
-        if (target.contains("/") || target.contains("\\")) {
+        // Only treat '/' as a path separator. Backslashes are considered part of the filename.
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        if (target.contains("/")) {
             File file = new File(target);
-
             if (file.exists() && file.isFile()) {
-                boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-
                 if (isWindows || file.canExecute()) {
                     return file;
                 }
             }
-
             return null;
         }
-
+        // Check if executable exists in current working directory by exact filename
+        File[] cwdFiles = currentDirectory.listFiles();
+        if (cwdFiles != null) {
+            for (File f : cwdFiles) {
+                if (f.isFile() && f.getName().equals(target)) {
+                    if (isWindows || f.canExecute()) {
+                        return f;
+                    }
+                }
+            }
+        }
         return findInPath(target);
     }
 
