@@ -30,7 +30,24 @@ public class Main {
             }
         }
         else{
-            System.out.println(command + ": command not found") ;
+            String[] parts = command.trim().split("\\s+");
+            if (parts.length > 0 && !parts[0].isEmpty()) {
+                String cmd = parts[0];
+                File file = findInPath(cmd);
+                if (file != null) {
+                    try {
+                        parts[0] = file.getAbsolutePath();
+                        ProcessBuilder pb = new ProcessBuilder(parts);
+                        pb.inheritIO();
+                        Process process = pb.start();
+                        process.waitFor();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    System.out.println(command + ": command not found");
+                }
+            }
         }
 
 }
