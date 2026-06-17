@@ -5,7 +5,7 @@ public class Main {
         // TODO: Uncomment the code below to pass the first stage
         Scanner sc = new Scanner(System.in);
         while (true){ 
-        System.out.print("$ ");
+        System.out.print("$ type ");
         
         String command = sc.nextLine() ;
 
