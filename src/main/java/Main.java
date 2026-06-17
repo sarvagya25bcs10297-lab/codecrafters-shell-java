@@ -111,7 +111,8 @@ public class Main {
                 if (file != null) {
                     try {
                         List<String> commandList = new ArrayList<>();
-                        commandList.add(file.getAbsolutePath());
+                        // Use the basename as argv[0], matching POSIX shell behavior.
+                        commandList.add(file.getName());
 
                         for (int i = 1; i < parts.length; i++) {
                             commandList.add(parts[i]);
@@ -120,6 +121,12 @@ public class Main {
                         ProcessBuilder pb = new ProcessBuilder(commandList);
                         pb.directory(currentDirectory);
                         pb.inheritIO();
+
+                        // Prepend the executable's parent directory to PATH so
+                        // ProcessBuilder can locate the binary by its basename.
+                        String parentDir = file.getParent() != null ? file.getParent() : ".";
+                        pb.environment().merge("PATH", parentDir,
+                                (existing, prepend) -> prepend + File.pathSeparator + existing);
 
                         Process process = pb.start();
                         process.waitFor();
