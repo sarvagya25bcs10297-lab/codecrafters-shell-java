@@ -28,6 +28,7 @@ public class Main {
             String[] parts = parseCommand(trimmed);
 
             String outputFile = null;
+            boolean appendOutput = false;
             String errorFile = null;
             List<String> filteredParts = new ArrayList<>();
 
@@ -35,6 +36,13 @@ public class Main {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     if (i + 1 < parts.length) {
                         outputFile = parts[i + 1];
+                        appendOutput = false;
+                        i++;
+                    }
+                } else if (parts[i].equals(">>") || parts[i].equals("1>>")) {
+                    if (i + 1 < parts.length) {
+                        outputFile = parts[i + 1];
+                        appendOutput = true;
                         i++;
                     }
                 } else if (parts[i].equals("2>")) {
@@ -76,7 +84,7 @@ public class Main {
             java.io.PrintStream errOut = System.out;
             try {
                 if (outFile != null) {
-                    out = new java.io.PrintStream(new java.io.FileOutputStream(outFile));
+                    out = new java.io.PrintStream(new java.io.FileOutputStream(outFile, appendOutput));
                 }
                 if (errFile != null) {
                     errOut = new java.io.PrintStream(new java.io.FileOutputStream(errFile));
@@ -186,7 +194,11 @@ public class Main {
                         pb.directory(currentDirectory);
                         pb.inheritIO();
                         if (outFile != null) {
-                            pb.redirectOutput(outFile);
+                            if (appendOutput) {
+                                pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
+                            } else {
+                                pb.redirectOutput(outFile);
+                            }
                         }
                         if (errFile != null) {
                             pb.redirectError(errFile);
