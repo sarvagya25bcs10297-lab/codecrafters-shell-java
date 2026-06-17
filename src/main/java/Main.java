@@ -44,7 +44,7 @@ public class Main {
                     System.out.println("type: missing operand");
                 } else {
                     String target = parts[1];
-                    if (target.equals("exit") || target.equals("echo") || target.equals("type")) {
+                    if (target.equals("exit") || target.equals("echo") || target.equals("type") || target.equals("pwd")) {
                         System.out.println(target + " is a shell builtin");
                     } else {
                         File file = findExecutable(target);
@@ -55,6 +55,8 @@ public class Main {
                         }
                     }
                 }
+            } else if (cmd.equals("pwd")) {
+                System.out.println(System.getProperty("user.dir"));
             } else {
                 File file = findExecutable(cmd);
                 if (file != null) {
