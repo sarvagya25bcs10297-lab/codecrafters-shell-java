@@ -29,41 +29,43 @@ public class Main {
                 }
             }
         }
-        else{
-            String[] parts = command.trim().split("\\s+");
-            if (parts.length > 0 && !parts[0].isEmpty()) {
-                String cmd = parts[0];
-                File file = findInPath(cmd);
-                if (file != null) {
-                    try {
-                        parts[0] = file.getAbsolutePath();
-                        ProcessBuilder pb = new ProcessBuilder(parts);
-                        pb.inheritIO();
-                        Process process = pb.start();
-                        process.waitFor();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    System.out.println(command + ": command not found");
-                }
+        else {
+    String[] parts = command.trim().split("\\s+");
+
+    if (parts.length > 0) {
+        File file = findInPath(parts[0]);
+
+        if (file != null) {
+            try {
+                parts[0] = file.getAbsolutePath(); // executable path
+                ProcessBuilder pb = new ProcessBuilder(parts);
+                pb.inheritIO(); // let program output directly to terminal
+                Process process = pb.start();
+                process.waitFor();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        } else {
+            System.out.println(command + ": command not found");
         }
+    }
+}
 
 }
 }
 
     private static File findInPath(String target) {
-        String pathEnv = System.getenv("PATH");
-        if (pathEnv != null) {
-            String[] directories = pathEnv.split(File.pathSeparator);
-            for (String dir : directories) {
-                File file = new File(dir, target);
-                if (file.exists() && file.isFile() && file.canExecute()) {
-                    return file;
-                }
+    String pathEnv = System.getenv("PATH");
+    if (pathEnv != null) {
+        String[] directories = pathEnv.split(File.pathSeparator);
+
+        for (String dir : directories) {
+            File file = new File(dir, target);
+            if (file.exists() && file.isFile()) {
+                return file;
             }
         }
-        return null;
     }
+    return null;
+}
 }
