@@ -28,16 +28,23 @@ public class Main {
             String[] parts = parseCommand(trimmed);
 
             String outputFile = null;
+            String errorFile = null;
             List<String> filteredParts = new ArrayList<>();
 
             for (int i = 0; i < parts.length; i++) {
                 if (parts[i].equals(">") || parts[i].equals("1>")) {
                     if (i + 1 < parts.length) {
                         outputFile = parts[i + 1];
+                        i++;
                     }
-                    break;
+                } else if (parts[i].equals("2>")) {
+                    if (i + 1 < parts.length) {
+                        errorFile = parts[i + 1];
+                        i++;
+                    }
+                } else {
+                    filteredParts.add(parts[i]);
                 }
-                filteredParts.add(parts[i]);
             }
 
             parts = filteredParts.toArray(new String[0]);
@@ -51,6 +58,17 @@ public class Main {
                 }
                 if (outFile.getParentFile() != null) {
                     outFile.getParentFile().mkdirs();
+                }
+            }
+
+            File errFile = null;
+            if (errorFile != null) {
+                errFile = new File(errorFile);
+                if (!errFile.isAbsolute()) {
+                    errFile = new File(currentDirectory, errorFile);
+                }
+                if (errFile.getParentFile() != null) {
+                    errFile.getParentFile().mkdirs();
                 }
             }
 
@@ -156,6 +174,9 @@ public class Main {
                         pb.inheritIO();
                         if (outFile != null) {
                             pb.redirectOutput(outFile);
+                        }
+                        if (errFile != null) {
+                            pb.redirectError(errFile);
                         }
 
                         // Prepend the executable's parent directory to PATH so
