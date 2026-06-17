@@ -140,37 +140,62 @@ public class Main {
 
     boolean inSingleQuotes = false;
     boolean inDoubleQuotes = false;
-    boolean escaping = false;
 
     for (int i = 0; i < input.length(); i++) {
         char c = input.charAt(i);
 
-        if (escaping) {
-            current.append(c);
-            escaping = false;
+        if (inSingleQuotes) {
+            if (c == '\'') {
+                inSingleQuotes = false;
+            } else {
+                current.append(c);
+            }
         }
-        else if (c == '\\' && !inSingleQuotes && !inDoubleQuotes) {
-            escaping = true;
-        }
-        else if (c == '\'' && !inDoubleQuotes) {
-            inSingleQuotes = !inSingleQuotes;
-        }
-        else if (c == '"' && !inSingleQuotes) {
-            inDoubleQuotes = !inDoubleQuotes;
-        }
-        else if (Character.isWhitespace(c) && !inSingleQuotes && !inDoubleQuotes) {
-            if (current.length() > 0) {
-                args.add(current.toString());
-                current.setLength(0);
+        else if (inDoubleQuotes) {
+            if (c == '"') {
+                inDoubleQuotes = false;
+            }
+            else if (c == '\\') {
+                if (i + 1 < input.length()) {
+                    char next = input.charAt(i + 1);
+
+                    if (next == '"' || next == '\\') {
+                        current.append(next);
+                        i++;
+                    } else {
+                        current.append('\\');
+                    }
+                } else {
+                    current.append('\\');
+                }
+            }
+            else {
+                current.append(c);
             }
         }
         else {
-            current.append(c);
+            if (c == '\'') {
+                inSingleQuotes = true;
+            }
+            else if (c == '"') {
+                inDoubleQuotes = true;
+            }
+            else if (c == '\\') {
+                if (i + 1 < input.length()) {
+                    current.append(input.charAt(i + 1));
+                    i++;
+                }
+            }
+            else if (Character.isWhitespace(c)) {
+                if (current.length() > 0) {
+                    args.add(current.toString());
+                    current.setLength(0);
+                }
+            }
+            else {
+                current.append(c);
+            }
         }
-    }
-
-    if (escaping) {
-        current.append('\\');
     }
 
     if (current.length() > 0) {
