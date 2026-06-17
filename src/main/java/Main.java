@@ -13,12 +13,14 @@ public class Main {
             System.out.print("$ ");
             System.out.flush();
 
-            if (!sc.hasNextLine()) break;
+            if (!sc.hasNextLine())
+                break;
 
             String command = sc.nextLine();
             String trimmed = command.trim();
 
-            if (trimmed.isEmpty()) continue;
+            if (trimmed.isEmpty())
+                continue;
 
             String[] parts = parseCommand(trimmed);
             String cmd = parts[0];
@@ -37,7 +39,8 @@ public class Main {
             else if (cmd.equals("echo")) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 1; i < parts.length; i++) {
-                    if (i > 1) sb.append(" ");
+                    if (i > 1)
+                        sb.append(" ");
                     sb.append(parts[i]);
                 }
                 System.out.println(sb);
@@ -156,11 +159,13 @@ public class Main {
                     if (i + 1 < input.length()) {
                         char next = input.charAt(i + 1);
 
-                        if (next == '"' || next == '\\' || next == '$' || next == '`') {
-                            current.append(next);
+                        if (next == '"') {
+                            current.append('"');
                             i++;
                         } else {
                             current.append('\\');
+                            current.append(next);
+                            i++;
                         }
                     } else {
                         current.append('\\');
@@ -213,8 +218,7 @@ public class Main {
             File file = new File(target);
 
             if (file.exists() && file.isFile()) {
-                boolean isWindows =
-                        System.getProperty("os.name").toLowerCase().contains("win");
+                boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
 
                 if (isWindows || file.canExecute()) {
                     return file;
@@ -230,17 +234,17 @@ public class Main {
     private static File findInPath(String target) {
         String pathEnv = System.getenv("PATH");
 
-        if (pathEnv == null) return null;
+        if (pathEnv == null)
+            return null;
 
         String[] directories = pathEnv.split(File.pathSeparator);
 
-        boolean isWindows =
-                System.getProperty("os.name").toLowerCase().contains("win");
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
 
-        String[] extensions = {""};
+        String[] extensions = { "" };
 
         if (isWindows) {
-            extensions = new String[]{"", ".exe", ".bat", ".cmd", ".com"};
+            extensions = new String[] { "", ".exe", ".bat", ".cmd", ".com" };
         }
 
         for (String dir : directories) {
@@ -258,5 +262,3 @@ public class Main {
         return null;
     }
 }
-
-
