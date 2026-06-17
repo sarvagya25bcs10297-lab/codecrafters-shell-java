@@ -159,10 +159,12 @@ public class Main {
                     if (i + 1 < input.length()) {
                         char next = input.charAt(i + 1);
 
+                        // Only \" is special in this stage
                         if (next == '"') {
                             current.append('"');
                             i++;
                         } else {
+                            // Preserve the backslash and the next character
                             current.append('\\');
                             current.append(next);
                             i++;
@@ -190,6 +192,8 @@ public class Main {
                     if (i + 1 < input.length()) {
                         current.append(input.charAt(i + 1));
                         i++;
+                    } else {
+                        current.append('\\');
                     }
                 }
 
