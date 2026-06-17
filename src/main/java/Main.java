@@ -55,16 +55,19 @@ public class Main {
             }
 
             // cd
-            else if (cmd.equals("cd")) {
+           else if (cmd.equals("cd")) {
     if (parts.length > 1) {
+        String path = parts[1];
         File newDir;
 
-        if (new File(parts[1]).isAbsolute()) {
-            // Absolute path
-            newDir = new File(parts[1]);
+        if (path.equals("~")) {
+            path = System.getenv("HOME");
+        }
+
+        if (new File(path).isAbsolute()) {
+            newDir = new File(path);
         } else {
-            // Relative path (./, ../, dirname, etc.)
-            newDir = new File(currentDirectory, parts[1]);
+            newDir = new File(currentDirectory, path);
         }
 
         try {
