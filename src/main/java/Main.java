@@ -4,32 +4,67 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.io.PrintWriter;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
 
 public class Main {
     // Tracks the current working directory for the shell, updated by cd builtin
     private static File currentDirectory = new File(System.getProperty("user.dir"));
 
     public static void main(String[] args) throws Exception {
-        Terminal terminal = TerminalBuilder.builder().system(true).build();
-        LineReader lineReader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(new StringsCompleter("echo", "exit"))
-                .build();
-
         while (true) {
-            String command;
-            try {
-                command = lineReader.readLine("$ ");
-            } catch (org.jline.reader.EndOfFileException e) {
-                break;
-            } catch (org.jline.reader.UserInterruptException e) {
-                continue;
+            System.out.print("$ ");
+            System.out.flush();
+
+            StringBuilder inputSb = new StringBuilder();
+            boolean eof = false;
+
+            while (true) {
+                int b = System.in.read();
+                if (b == -1) {
+                    eof = true;
+                    break;
+                }
+                char c = (char) b;
+                
+                if (c == '\n') {
+                    // Enter pressed
+                    break;
+                } else if (c == '\r') {
+                    // Ignore carriage return
+                    continue;
+                } else if (c == '\t') {
+                    // Tab autocompletion
+                    String current = inputSb.toString();
+                    if ("echo".startsWith(current) && current.length() > 0) {
+                        String completion = "echo ".substring(current.length());
+                        System.out.print(completion);
+                        System.out.flush();
+                        inputSb.append(completion);
+                    } else if ("exit".startsWith(current) && current.length() > 0) {
+                        String completion = "exit ".substring(current.length());
+                        System.out.print(completion);
+                        System.out.flush();
+                        inputSb.append(completion);
+                    } else {
+                        System.out.print("\007"); // Beep
+                        System.out.flush();
+                    }
+                } else if (c == 127 || c == '\b') {
+                    // Backspace
+                    if (inputSb.length() > 0) {
+                        inputSb.setLength(inputSb.length() - 1);
+                        System.out.print("\b \b");
+                        System.out.flush();
+                    }
+                } else {
+                    inputSb.append(c);
+                }
             }
+
+            if (eof && inputSb.length() == 0) {
+                break;
+            }
+
+            String command = inputSb.toString();
             String trimmed = command.trim();
 
             if (trimmed.isEmpty())
