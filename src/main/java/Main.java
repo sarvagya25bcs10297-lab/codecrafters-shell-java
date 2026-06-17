@@ -24,6 +24,7 @@ public class Main {
             String[] parts = trimmed.split("\\s+");
             String cmd = parts[0];
 
+            // exit
             if (cmd.equals("exit")) {
                 int status = 0;
                 if (parts.length > 1) {
@@ -36,6 +37,7 @@ public class Main {
                 System.exit(status);
             }
 
+            // echo
             else if (cmd.equals("echo")) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 1; i < parts.length; i++) {
@@ -47,10 +49,12 @@ public class Main {
                 System.out.println(sb.toString());
             }
 
+            // pwd
             else if (cmd.equals("pwd")) {
                 System.out.println(currentDirectory.getAbsolutePath());
             }
 
+            // cd
             else if (cmd.equals("cd")) {
                 if (parts.length > 1) {
                     File newDir = new File(parts[1]);
@@ -63,6 +67,7 @@ public class Main {
                 }
             }
 
+            // type
             else if (cmd.equals("type")) {
                 if (parts.length < 2) {
                     System.out.println("type: missing operand");
@@ -74,9 +79,11 @@ public class Main {
                             || target.equals("type")
                             || target.equals("pwd")
                             || target.equals("cd")) {
+
                         System.out.println(target + " is a shell builtin");
                     } else {
                         File file = findExecutable(target);
+
                         if (file != null) {
                             System.out.println(target + " is " + file.getAbsolutePath());
                         } else {
@@ -86,19 +93,19 @@ public class Main {
                 }
             }
 
+            // external command
             else {
                 File file = findExecutable(cmd);
 
                 if (file != null) {
                     try {
-                        parts[0] = file.getAbsolutePath();
-
                         ProcessBuilder pb = new ProcessBuilder(parts);
                         pb.directory(currentDirectory);
                         pb.inheritIO();
 
                         Process process = pb.start();
                         process.waitFor();
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
