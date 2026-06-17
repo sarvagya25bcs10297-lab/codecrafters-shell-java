@@ -4,67 +4,53 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.io.PrintWriter;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.Completer;
+import org.jline.reader.Candidate;
+import org.jline.reader.ParsedLine;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.reader.impl.DefaultParser;
 
 public class Main {
     // Tracks the current working directory for the shell, updated by cd builtin
     private static File currentDirectory = new File(System.getProperty("user.dir"));
 
     public static void main(String[] args) throws Exception {
+        DefaultParser parser = new DefaultParser();
+        parser.setEscapeChars(new char[0]);
+        parser.setQuoteChars(new char[0]);
+
+        // Custom completer that checks the raw buffer directly
+        Completer builtinCompleter = (reader, line, candidates) -> {
+            String buf = line.line().substring(0, line.cursor());
+            String[] builtins = { "echo", "exit" };
+            for (String b : builtins) {
+                if (b.startsWith(buf) && buf.length() > 0 && !buf.equals(b)) {
+                    candidates.add(new Candidate(b + " ", b, null, null, null, null, false));
+                }
+            }
+        };
+
+        Terminal terminal = TerminalBuilder.builder().system(true).build();
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(terminal)
+                .completer(builtinCompleter)
+                .parser(parser)
+                .option(LineReader.Option.AUTO_LIST, false)
+                .option(LineReader.Option.AUTO_MENU, false)
+                .build();
+
         while (true) {
-            System.out.print("$ ");
-            System.out.flush();
-
-            StringBuilder inputSb = new StringBuilder();
-            boolean eof = false;
-
-            while (true) {
-                int b = System.in.read();
-                if (b == -1) {
-                    eof = true;
-                    break;
-                }
-                char c = (char) b;
-                
-                if (c == '\n') {
-                    // Enter pressed
-                    break;
-                } else if (c == '\r') {
-                    // Ignore carriage return
-                    continue;
-                } else if (c == '\t') {
-                    // Tab autocompletion
-                    String current = inputSb.toString();
-                    if ("echo".startsWith(current) && current.length() > 0) {
-                        String completion = "echo ".substring(current.length());
-                        System.out.print(completion);
-                        System.out.flush();
-                        inputSb.append(completion);
-                    } else if ("exit".startsWith(current) && current.length() > 0) {
-                        String completion = "exit ".substring(current.length());
-                        System.out.print(completion);
-                        System.out.flush();
-                        inputSb.append(completion);
-                    } else {
-                        System.out.print("\007"); // Beep
-                        System.out.flush();
-                    }
-                } else if (c == 127 || c == '\b') {
-                    // Backspace
-                    if (inputSb.length() > 0) {
-                        inputSb.setLength(inputSb.length() - 1);
-                        System.out.print("\b \b");
-                        System.out.flush();
-                    }
-                } else {
-                    inputSb.append(c);
-                }
-            }
-
-            if (eof && inputSb.length() == 0) {
+            String command;
+            try {
+                command = lineReader.readLine("$ ");
+            } catch (org.jline.reader.EndOfFileException e) {
                 break;
+            } catch (org.jline.reader.UserInterruptException e) {
+                continue;
             }
-
-            String command = inputSb.toString();
             String trimmed = command.trim();
 
             if (trimmed.isEmpty())
