@@ -19,6 +19,7 @@ public class Main {
     private static String lastBuffer = "";
     private static int lastCursor = -1;
     private static int tabCount = 0;
+    private static java.util.Map<String, String> commandCompletions = new java.util.HashMap<>();
 
     public static void main(String[] args) throws Exception {
         DefaultParser parser = new DefaultParser();
@@ -385,8 +386,17 @@ public class Main {
                 }
             }
             else if (cmd.equals("complete")) {
-                if (parts.length > 2 && parts[1].equals("-p")) {
-                    out.println("complete: " + parts[2] + ": no completion specification");
+                if (parts.length >= 4 && parts[1].equals("-C")) {
+                    String completerPath = parts[2];
+                    String targetCmd = parts[3];
+                    commandCompletions.put(targetCmd, completerPath);
+                } else if (parts.length >= 3 && parts[1].equals("-p")) {
+                    String targetCmd = parts[2];
+                    if (commandCompletions.containsKey(targetCmd)) {
+                        out.println("complete -C '" + commandCompletions.get(targetCmd) + "' " + targetCmd);
+                    } else {
+                        out.println("complete: " + targetCmd + ": no completion specification");
+                    }
                 }
             }
             else {
