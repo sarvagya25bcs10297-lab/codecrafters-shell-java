@@ -505,6 +505,9 @@ public class Main {
                     } else {
                         out.println("complete: " + targetCmd + ": no completion specification");
                     }
+                } else if (parts.length >= 3 && parts[1].equals("-r")) {
+                    String targetCmd = parts[2];
+                    commandCompletions.remove(targetCmd);
                 }
             }
             else {
