@@ -70,13 +70,17 @@ public class Main {
 
                 if (fileMatches.size() == 1) {
                     String match = fileMatches.iterator().next();
-                    candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                    File matchFile = new File(currentDirectory, match);
+                    String suffix = matchFile.isDirectory() ? "/" : " ";
+                    candidates.add(new Candidate(match + suffix, match, null, null, null, null, false));
                 } else {
                     // Multiple file matches
                     String lcp = getLongestCommonPrefix(fileMatches);
                     if (lcp.length() > argPrefix.length()) {
                         for (String match : fileMatches) {
-                            candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                            File matchFile = new File(currentDirectory, match);
+                            String suffix = matchFile.isDirectory() ? "/" : " ";
+                            candidates.add(new Candidate(match + suffix, match, null, null, null, null, false));
                         }
                     } else {
                         if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
