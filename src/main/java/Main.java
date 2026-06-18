@@ -22,16 +22,51 @@ public class Main {
         parser.setEscapeChars(new char[0]);
         parser.setQuoteChars(new char[0]);
 
-        // Custom completer that checks the raw buffer directly
+        // Custom completer that checks the raw buffer directly and includes PATH executables
         Completer builtinCompleter = (reader, line, candidates) -> {
             String buf = line.line().substring(0, line.cursor());
-            String[] builtins = { "echo", "exit" };
+            if (buf.length() == 0) {
+                return;
+            }
+
+            java.util.Set<String> matches = new java.util.LinkedHashSet<>();
+
+            // Builtins
+            String[] builtins = { "echo", "exit", "pwd", "cd", "type" };
             for (String b : builtins) {
-                if (b.startsWith(buf) && buf.length() > 0 && !buf.equals(b)) {
-                    candidates.add(new Candidate(b + " ", b, null, null, null, null, false));
+                if (b.startsWith(buf)) {
+                    matches.add(b);
                 }
             }
+
+            // Executables in PATH
+            String pathEnv = System.getenv("PATH");
+            if (pathEnv != null) {
+                String[] directories = pathEnv.split(File.pathSeparator);
+                boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+                for (String dir : directories) {
+                    File folder = new File(dir);
+                    if (folder.exists() && folder.isDirectory()) {
+                        File[] files = folder.listFiles();
+                        if (files != null) {
+                            for (File f : files) {
+                                if (f.isFile() && (isWindows || f.canExecute())) {
+                                    String name = f.getName();
+                                    if (name.startsWith(buf)) {
+                                        matches.add(name);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (String match : matches) {
+                candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+            }
         };
+
 
         Terminal terminal = TerminalBuilder.builder().system(true).build();
         LineReader lineReader = LineReaderBuilder.builder()
