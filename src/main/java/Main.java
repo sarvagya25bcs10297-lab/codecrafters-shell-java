@@ -385,7 +385,9 @@ public class Main {
                 }
             }
             else if (cmd.equals("complete")) {
-                // Placeholder for complete builtin behavior in later stages
+                if (parts.length > 2 && parts[1].equals("-p")) {
+                    out.println("complete: " + parts[2] + ": no completion specification");
+                }
             }
             else {
                 File file = findExecutable(cmd);
