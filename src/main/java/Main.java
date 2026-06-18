@@ -92,7 +92,6 @@ public class Main {
                             lastBuffer = buf;
                             lastCursor = line.cursor();
                         }
-
                         if (tabCount == 1) {
                             try {
                                 System.out.print("\u0007");
@@ -102,11 +101,16 @@ public class Main {
                             } catch (Exception e) {
                             }
                         } else if (tabCount >= 2) {
-                            List<String> sortedMatches = new ArrayList<>(fileMatches);
-                            java.util.Collections.sort(sortedMatches);
+                            List<String> formattedMatches = new ArrayList<>();
+                            for (String match : fileMatches) {
+                                File matchFile = new File(currentDirectory, match);
+                                String suffix = matchFile.isDirectory() ? "/" : "";
+                                formattedMatches.add(matchFile.getName() + suffix);
+                            }
+                            java.util.Collections.sort(formattedMatches);
                             try {
                                 reader.getTerminal().writer().println();
-                                reader.getTerminal().writer().println(String.join("  ", sortedMatches));
+                                reader.getTerminal().writer().println(String.join("  ", formattedMatches));
                                 reader.getTerminal().writer().flush();
                                 reader.callWidget(LineReader.REDRAW_LINE);
                             } catch (Exception e) {
