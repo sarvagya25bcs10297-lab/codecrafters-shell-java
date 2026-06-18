@@ -35,6 +35,60 @@ public class Main {
 
             int lastSpace = buf.lastIndexOf(' ');
             if (lastSpace >= 0) {
+                // Check if a completion script is registered for the command (first word of the line)
+                int firstSpace = buf.indexOf(' ');
+                String firstWord = firstSpace >= 0 ? buf.substring(0, firstSpace) : buf;
+                if (commandCompletions.containsKey(firstWord)) {
+                    String completerScript = commandCompletions.get(firstWord);
+                    String argPrefix = buf.substring(lastSpace + 1);
+                    List<String> scriptMatches = new ArrayList<>();
+                    try {
+                        ProcessBuilder pb = new ProcessBuilder(completerScript);
+                        pb.directory(currentDirectory);
+                        Process process = pb.start();
+
+                        try (java.io.BufferedReader readerProc = new java.io.BufferedReader(
+                                new java.io.InputStreamReader(process.getInputStream()))) {
+                            String lineProc;
+                            while ((lineProc = readerProc.readLine()) != null) {
+                                String trimmed = lineProc.trim();
+                                if (!trimmed.isEmpty()) {
+                                    scriptMatches.add(trimmed);
+                                }
+                            }
+                        }
+                        process.waitFor();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    List<String> filteredMatches = new ArrayList<>();
+                    for (String m : scriptMatches) {
+                        if (m.startsWith(argPrefix)) {
+                            filteredMatches.add(m);
+                        }
+                    }
+
+                    if (filteredMatches.size() == 0) {
+                        try {
+                            System.out.print("\u0007");
+                            System.out.flush();
+                            reader.getTerminal().writer().print("\u0007");
+                            reader.getTerminal().writer().flush();
+                        } catch (Exception e) {
+                        }
+                        return;
+                    }
+
+                    if (filteredMatches.size() == 1) {
+                        String match = filteredMatches.get(0);
+                        candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                    } else {
+                        // Future multiple matches handling
+                    }
+                    return;
+                }
+
                 // Filename completion
                 String argPrefix = buf.substring(lastSpace + 1);
                 String dirPath = "";
