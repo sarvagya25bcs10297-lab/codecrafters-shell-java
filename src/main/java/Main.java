@@ -123,7 +123,7 @@ public class Main {
                 java.util.Set<String> matches = new java.util.LinkedHashSet<>();
 
                 // Builtins
-                String[] builtins = { "echo", "exit", "pwd", "cd", "type" };
+                String[] builtins = { "echo", "exit", "pwd", "cd", "type", "complete" };
                 for (String b : builtins) {
                     if (b.startsWith(buf)) {
                         matches.add(b);
@@ -370,7 +370,8 @@ public class Main {
                             || target.equals("echo")
                             || target.equals("pwd")
                             || target.equals("cd")
-                            || target.equals("type")) {
+                            || target.equals("type")
+                            || target.equals("complete")) {
                         out.println(target + " is a shell builtin");
                     } else {
                         File file = findExecutable(target);
@@ -382,6 +383,9 @@ public class Main {
                         }
                     }
                 }
+            }
+            else if (cmd.equals("complete")) {
+                // Placeholder for complete builtin behavior in later stages
             }
             else {
                 File file = findExecutable(cmd);
