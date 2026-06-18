@@ -25,89 +25,153 @@ public class Main {
         parser.setEscapeChars(new char[0]);
         parser.setQuoteChars(new char[0]);
 
-        // Custom completer that checks the raw buffer directly and includes PATH executables
+        // Custom completer that checks the raw buffer directly and includes PATH executables and filenames
         Completer builtinCompleter = (reader, line, candidates) -> {
             String buf = line.line().substring(0, line.cursor());
             if (buf.length() == 0) {
                 return;
             }
 
-            java.util.Set<String> matches = new java.util.LinkedHashSet<>();
-
-            // Builtins
-            String[] builtins = { "echo", "exit", "pwd", "cd", "type" };
-            for (String b : builtins) {
-                if (b.startsWith(buf)) {
-                    matches.add(b);
+            int lastSpace = buf.lastIndexOf(' ');
+            if (lastSpace >= 0) {
+                // Filename completion
+                String argPrefix = buf.substring(lastSpace + 1);
+                java.util.Set<String> fileMatches = new java.util.LinkedHashSet<>();
+                File[] dirFiles = currentDirectory.listFiles();
+                if (dirFiles != null) {
+                    for (File f : dirFiles) {
+                        if (f.isFile() && f.getName().startsWith(argPrefix)) {
+                            fileMatches.add(f.getName());
+                        }
+                    }
                 }
-            }
 
-            // Executables in PATH
-            String pathEnv = System.getenv("PATH");
-            if (pathEnv != null) {
-                String[] directories = pathEnv.split(File.pathSeparator);
-                boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-                for (String dir : directories) {
-                    File folder = new File(dir);
-                    if (folder.exists() && folder.isDirectory()) {
-                        File[] files = folder.listFiles();
-                        if (files != null) {
-                            for (File f : files) {
-                                if (f.isFile() && (isWindows || f.canExecute())) {
-                                    String name = f.getName();
-                                    if (name.startsWith(buf)) {
-                                        matches.add(name);
+                if (fileMatches.size() == 0) {
+                    try {
+                        reader.getTerminal().writer().print("\u0007");
+                        reader.getTerminal().writer().flush();
+                    } catch (Exception e) {
+                    }
+                    return;
+                }
+
+                if (fileMatches.size() == 1) {
+                    String match = fileMatches.iterator().next();
+                    candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                } else {
+                    // Multiple file matches
+                    String lcp = getLongestCommonPrefix(fileMatches);
+                    if (lcp.length() > argPrefix.length()) {
+                        for (String match : fileMatches) {
+                            candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                        }
+                    } else {
+                        if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
+                            tabCount++;
+                        } else {
+                            tabCount = 1;
+                            lastBuffer = buf;
+                            lastCursor = line.cursor();
+                        }
+
+                        if (tabCount == 1) {
+                            try {
+                                reader.getTerminal().writer().print("\u0007");
+                                reader.getTerminal().writer().flush();
+                            } catch (Exception e) {
+                            }
+                        } else if (tabCount >= 2) {
+                            List<String> sortedMatches = new ArrayList<>(fileMatches);
+                            java.util.Collections.sort(sortedMatches);
+                            try {
+                                reader.getTerminal().writer().println();
+                                reader.getTerminal().writer().println(String.join("  ", sortedMatches));
+                                reader.getTerminal().writer().flush();
+                                reader.callWidget(LineReader.REDRAW_LINE);
+                            } catch (Exception e) {
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Command completion
+                java.util.Set<String> matches = new java.util.LinkedHashSet<>();
+
+                // Builtins
+                String[] builtins = { "echo", "exit", "pwd", "cd", "type" };
+                for (String b : builtins) {
+                    if (b.startsWith(buf)) {
+                        matches.add(b);
+                    }
+                }
+
+                // Executables in PATH
+                String pathEnv = System.getenv("PATH");
+                if (pathEnv != null) {
+                    String[] directories = pathEnv.split(File.pathSeparator);
+                    boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+                    for (String dir : directories) {
+                        File folder = new File(dir);
+                        if (folder.exists() && folder.isDirectory()) {
+                            File[] files = folder.listFiles();
+                            if (files != null) {
+                                for (File f : files) {
+                                    if (f.isFile() && (isWindows || f.canExecute())) {
+                                        String name = f.getName();
+                                        if (name.startsWith(buf)) {
+                                            matches.add(name);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (matches.size() == 0) {
-                try {
-                    reader.getTerminal().writer().print("\u0007");
-                    reader.getTerminal().writer().flush();
-                } catch (Exception e) {
+                if (matches.size() == 0) {
+                    try {
+                        reader.getTerminal().writer().print("\u0007");
+                        reader.getTerminal().writer().flush();
+                    } catch (Exception e) {
+                    }
+                    return;
                 }
-                return;
-            }
 
-            if (matches.size() == 1) {
-                String match = matches.iterator().next();
-                candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
-            } else {
-                // Multiple matches
-                String lcp = getLongestCommonPrefix(matches);
-                if (lcp.length() > buf.length()) {
-                    for (String match : matches) {
-                        candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
-                    }
+                if (matches.size() == 1) {
+                    String match = matches.iterator().next();
+                    candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
                 } else {
-                    if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
-                        tabCount++;
-                    } else {
-                        tabCount = 1;
-                        lastBuffer = buf;
-                        lastCursor = line.cursor();
-                    }
-
-                    if (tabCount == 1) {
-                        try {
-                            reader.getTerminal().writer().print("\u0007");
-                            reader.getTerminal().writer().flush();
-                        } catch (Exception e) {
+                    // Multiple matches
+                    String lcp = getLongestCommonPrefix(matches);
+                    if (lcp.length() > buf.length()) {
+                        for (String match : matches) {
+                            candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
                         }
-                    } else if (tabCount >= 2) {
-                        List<String> sortedMatches = new ArrayList<>(matches);
-                        java.util.Collections.sort(sortedMatches);
-                        try {
-                            reader.getTerminal().writer().println();
-                            reader.getTerminal().writer().println(String.join("  ", sortedMatches));
-                            reader.getTerminal().writer().flush();
-                            reader.callWidget(LineReader.REDRAW_LINE);
-                        } catch (Exception e) {
+                    } else {
+                        if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
+                            tabCount++;
+                        } else {
+                            tabCount = 1;
+                            lastBuffer = buf;
+                            lastCursor = line.cursor();
+                        }
+
+                        if (tabCount == 1) {
+                            try {
+                                reader.getTerminal().writer().print("\u0007");
+                                reader.getTerminal().writer().flush();
+                            } catch (Exception e) {
+                            }
+                        } else if (tabCount >= 2) {
+                            List<String> sortedMatches = new ArrayList<>(matches);
+                            java.util.Collections.sort(sortedMatches);
+                            try {
+                                reader.getTerminal().writer().println();
+                                reader.getTerminal().writer().println(String.join("  ", sortedMatches));
+                                reader.getTerminal().writer().flush();
+                                reader.callWidget(LineReader.REDRAW_LINE);
+                            } catch (Exception e) {
+                            }
                         }
                     }
                 }
