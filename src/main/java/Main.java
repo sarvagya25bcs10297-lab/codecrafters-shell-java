@@ -16,6 +16,9 @@ import org.jline.reader.impl.DefaultParser;
 public class Main {
     // Tracks the current working directory for the shell, updated by cd builtin
     private static File currentDirectory = new File(System.getProperty("user.dir"));
+    private static String lastBuffer = "";
+    private static int lastCursor = -1;
+    private static int tabCount = 0;
 
     public static void main(String[] args) throws Exception {
         DefaultParser parser = new DefaultParser();
@@ -62,8 +65,45 @@ public class Main {
                 }
             }
 
-            for (String match : matches) {
+            if (matches.size() == 0) {
+                try {
+                    reader.getTerminal().writer().print("\u0007");
+                    reader.getTerminal().writer().flush();
+                } catch (Exception e) {
+                }
+                return;
+            }
+
+            if (matches.size() == 1) {
+                String match = matches.iterator().next();
                 candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+            } else {
+                // Multiple matches
+                if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
+                    tabCount++;
+                } else {
+                    tabCount = 1;
+                    lastBuffer = buf;
+                    lastCursor = line.cursor();
+                }
+
+                if (tabCount == 1) {
+                    try {
+                        reader.getTerminal().writer().print("\u0007");
+                        reader.getTerminal().writer().flush();
+                    } catch (Exception e) {
+                    }
+                } else if (tabCount >= 2) {
+                    List<String> sortedMatches = new ArrayList<>(matches);
+                    java.util.Collections.sort(sortedMatches);
+                    try {
+                        reader.getTerminal().writer().println();
+                        reader.getTerminal().writer().println(String.join("  ", sortedMatches));
+                        reader.getTerminal().writer().flush();
+                        reader.callWidget(LineReader.REDRAW_LINE);
+                    } catch (Exception e) {
+                    }
+                }
             }
         };
 
@@ -76,6 +116,8 @@ public class Main {
                 .option(LineReader.Option.AUTO_LIST, false)
                 .option(LineReader.Option.AUTO_MENU, false)
                 .build();
+        lineReader.setVariable(LineReader.BELL_STYLE, "none");
+
 
         while (true) {
             String command;
