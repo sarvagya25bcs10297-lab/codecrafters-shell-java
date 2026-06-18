@@ -33,17 +33,31 @@ public class Main {
                 return;
             }
 
-            int lastSpace = buf.lastIndexOf(' ');
-            if (lastSpace >= 0) {
-                // Check if a completion script is registered for the command (first word of the line)
-                int firstSpace = buf.indexOf(' ');
-                String firstWord = firstSpace >= 0 ? buf.substring(0, firstSpace) : buf;
+            // Parse buf into words, ignoring duplicate spaces
+            List<String> words = new ArrayList<>();
+            StringBuilder currentWord = new StringBuilder();
+            for (int i = 0; i < buf.length(); i++) {
+                char c = buf.charAt(i);
+                if (Character.isWhitespace(c)) {
+                    if (currentWord.length() > 0) {
+                        words.add(currentWord.toString());
+                        currentWord.setLength(0);
+                    }
+                } else {
+                    currentWord.append(c);
+                }
+            }
+            String curWord = currentWord.toString();
+
+            if (!words.isEmpty()) {
+                String firstWord = words.get(0);
                 if (commandCompletions.containsKey(firstWord)) {
                     String completerScript = commandCompletions.get(firstWord);
-                    String argPrefix = buf.substring(lastSpace + 1);
+                    String cmdArg = firstWord;
+                    String prevWord = words.get(words.size() - 1);
                     List<String> scriptMatches = new ArrayList<>();
                     try {
-                        ProcessBuilder pb = new ProcessBuilder(completerScript);
+                        ProcessBuilder pb = new ProcessBuilder(completerScript, cmdArg, curWord, prevWord);
                         pb.directory(currentDirectory);
                         Process process = pb.start();
 
@@ -64,7 +78,7 @@ public class Main {
 
                     List<String> filteredMatches = new ArrayList<>();
                     for (String m : scriptMatches) {
-                        if (m.startsWith(argPrefix)) {
+                        if (m.startsWith(curWord)) {
                             filteredMatches.add(m);
                         }
                     }
@@ -84,10 +98,46 @@ public class Main {
                         String match = filteredMatches.get(0);
                         candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
                     } else {
-                        // Future multiple matches handling
+                        // Multiple matches
+                        String lcp = getLongestCommonPrefix(new java.util.LinkedHashSet<>(filteredMatches));
+                        if (lcp.length() > curWord.length()) {
+                            for (String match : filteredMatches) {
+                                candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
+                            }
+                        } else {
+                            if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
+                                tabCount++;
+                            } else {
+                                tabCount = 1;
+                                lastBuffer = buf;
+                                lastCursor = line.cursor();
+                            }
+                            if (tabCount == 1) {
+                                try {
+                                    System.out.print("\u0007");
+                                    System.out.flush();
+                                    reader.getTerminal().writer().print("\u0007");
+                                    reader.getTerminal().writer().flush();
+                                } catch (Exception e) {
+                                }
+                            } else if (tabCount >= 2) {
+                                java.util.Collections.sort(filteredMatches);
+                                try {
+                                    reader.getTerminal().writer().println();
+                                    reader.getTerminal().writer().println(String.join("  ", filteredMatches));
+                                    reader.getTerminal().writer().flush();
+                                    reader.callWidget(LineReader.REDRAW_LINE);
+                                } catch (Exception e) {
+                                }
+                            }
+                        }
                     }
                     return;
                 }
+            }
+
+            int lastSpace = buf.lastIndexOf(' ');
+            if (lastSpace >= 0) {
 
                 // Filename completion
                 String argPrefix = buf.substring(lastSpace + 1);
