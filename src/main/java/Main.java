@@ -527,9 +527,17 @@ public class Main {
                 }
             }
             else if (cmd.equals("jobs")) {
-                for (Job job : backgroundJobsList) {
+                int totalJobs = backgroundJobsList.size();
+                for (int i = 0; i < totalJobs; i++) {
+                    Job job = backgroundJobsList.get(i);
                     if (job.process.isAlive()) {
-                        out.printf("[%d]+  %-24s%s\n", job.id, "Running", job.command);
+                        char marker = ' ';
+                        if (i == totalJobs - 1) {
+                            marker = '+';
+                        } else if (i == totalJobs - 2) {
+                            marker = '-';
+                        }
+                        out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Running", job.command);
                     }
                 }
             }
