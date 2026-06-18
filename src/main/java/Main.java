@@ -20,6 +20,20 @@ public class Main {
     private static int lastCursor = -1;
     private static int tabCount = 0;
     static int backgroundJobCount = 0;
+    static class Job {
+        int id;
+        long pid;
+        String command;
+        Process process;
+
+        Job(int id, long pid, String command, Process process) {
+            this.id = id;
+            this.pid = pid;
+            this.command = command;
+            this.process = process;
+        }
+    }
+    static java.util.List<Job> backgroundJobsList = new java.util.ArrayList<>();
     private static java.util.Map<String, String> commandCompletions = new java.util.HashMap<>();
 
     public static void main(String[] args) throws Exception {
@@ -513,7 +527,11 @@ public class Main {
                 }
             }
             else if (cmd.equals("jobs")) {
-                // Empty implementation for now
+                for (Job job : backgroundJobsList) {
+                    if (job.process.isAlive()) {
+                        out.printf("[%d]+  %-24s%s\n", job.id, "Running", job.command);
+                    }
+                }
             }
             else {
                 File file = findExecutable(cmd);
@@ -572,6 +590,8 @@ public class Main {
                         
                         if (isBackground) {
                             backgroundJobCount++;
+                            String cmdString = String.join(" ", parts);
+                            backgroundJobsList.add(new Job(backgroundJobCount, process.pid(), cmdString, process));
                             System.out.println("[" + backgroundJobCount + "] " + process.pid());
                         } else {
                             process.waitFor();
