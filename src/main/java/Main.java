@@ -344,6 +344,7 @@ public class Main {
 
 
         while (true) {
+            reapJobs();
             String command;
             try {
                 command = lineReader.readLine("$ ");
@@ -527,29 +528,7 @@ public class Main {
                 }
             }
             else if (cmd.equals("jobs")) {
-                java.util.List<Job> toRemove = new java.util.ArrayList<>();
-                int totalJobs = backgroundJobsList.size();
-                for (int i = 0; i < totalJobs; i++) {
-                    Job job = backgroundJobsList.get(i);
-                    char marker = ' ';
-                    if (i == totalJobs - 1) {
-                        marker = '+';
-                    } else if (i == totalJobs - 2) {
-                        marker = '-';
-                    }
-                    if (job.process.isAlive()) {
-                        out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Running", job.command);
-                    } else {
-                        // Strip trailing " &" from the command for Done display
-                        String doneCmd = job.command;
-                        if (doneCmd.endsWith(" &")) {
-                            doneCmd = doneCmd.substring(0, doneCmd.length() - 2);
-                        }
-                        out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Done", doneCmd);
-                        toRemove.add(job);
-                    }
-                }
-                backgroundJobsList.removeAll(toRemove);
+                reapJobs();
             }
             else {
                 File file = findExecutable(cmd);
@@ -632,6 +611,56 @@ public class Main {
         }
     } // end of while (true)
 } // end of main
+
+    static void reapJobs() {
+        if (backgroundJobsList.isEmpty()) return;
+        java.util.List<Job> toRemove = new java.util.ArrayList<>();
+        int totalJobs = backgroundJobsList.size();
+        for (int i = 0; i < totalJobs; i++) {
+            Job job = backgroundJobsList.get(i);
+            if (!job.process.isAlive()) {
+                char marker = ' ';
+                if (i == totalJobs - 1) {
+                    marker = '+';
+                } else if (i == totalJobs - 2) {
+                    marker = '-';
+                }
+                String doneCmd = job.command;
+                if (doneCmd.endsWith(" &")) {
+                    doneCmd = doneCmd.substring(0, doneCmd.length() - 2);
+                }
+                System.out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Done", doneCmd);
+                toRemove.add(job);
+            }
+        }
+        backgroundJobsList.removeAll(toRemove);
+    }
+
+    // Also used by the jobs builtin to print both Running and Done entries
+    static void printAndReapJobs(java.io.PrintStream out) {
+        java.util.List<Job> toRemove = new java.util.ArrayList<>();
+        int totalJobs = backgroundJobsList.size();
+        for (int i = 0; i < totalJobs; i++) {
+            Job job = backgroundJobsList.get(i);
+            char marker = ' ';
+            if (i == totalJobs - 1) {
+                marker = '+';
+            } else if (i == totalJobs - 2) {
+                marker = '-';
+            }
+            if (job.process.isAlive()) {
+                out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Running", job.command);
+            } else {
+                String doneCmd = job.command;
+                if (doneCmd.endsWith(" &")) {
+                    doneCmd = doneCmd.substring(0, doneCmd.length() - 2);
+                }
+                out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Done", doneCmd);
+                toRemove.add(job);
+            }
+        }
+        backgroundJobsList.removeAll(toRemove);
+    }
 
     private static String[] parseCommand(String input) {
         List<String> args = new ArrayList<>();
