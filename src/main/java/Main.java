@@ -61,6 +61,8 @@ public class Main {
 
                 if (fileMatches.size() == 0) {
                     try {
+                        System.out.print("\u0007");
+                        System.out.flush();
                         reader.getTerminal().writer().print("\u0007");
                         reader.getTerminal().writer().flush();
                     } catch (Exception e) {
@@ -93,6 +95,8 @@ public class Main {
 
                         if (tabCount == 1) {
                             try {
+                                System.out.print("\u0007");
+                                System.out.flush();
                                 reader.getTerminal().writer().print("\u0007");
                                 reader.getTerminal().writer().flush();
                             } catch (Exception e) {
@@ -147,6 +151,8 @@ public class Main {
 
                 if (matches.size() == 0) {
                     try {
+                        System.out.print("\u0007");
+                        System.out.flush();
                         reader.getTerminal().writer().print("\u0007");
                         reader.getTerminal().writer().flush();
                     } catch (Exception e) {
@@ -175,6 +181,8 @@ public class Main {
 
                         if (tabCount == 1) {
                             try {
+                                System.out.print("\u0007");
+                                System.out.flush();
                                 reader.getTerminal().writer().print("\u0007");
                                 reader.getTerminal().writer().flush();
                             } catch (Exception e) {
