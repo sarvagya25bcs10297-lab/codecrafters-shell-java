@@ -79,29 +79,36 @@ public class Main {
                 candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
             } else {
                 // Multiple matches
-                if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
-                    tabCount++;
-                } else {
-                    tabCount = 1;
-                    lastBuffer = buf;
-                    lastCursor = line.cursor();
-                }
-
-                if (tabCount == 1) {
-                    try {
-                        reader.getTerminal().writer().print("\u0007");
-                        reader.getTerminal().writer().flush();
-                    } catch (Exception e) {
+                String lcp = getLongestCommonPrefix(matches);
+                if (lcp.length() > buf.length()) {
+                    for (String match : matches) {
+                        candidates.add(new Candidate(match + " ", match, null, null, null, null, false));
                     }
-                } else if (tabCount >= 2) {
-                    List<String> sortedMatches = new ArrayList<>(matches);
-                    java.util.Collections.sort(sortedMatches);
-                    try {
-                        reader.getTerminal().writer().println();
-                        reader.getTerminal().writer().println(String.join("  ", sortedMatches));
-                        reader.getTerminal().writer().flush();
-                        reader.callWidget(LineReader.REDRAW_LINE);
-                    } catch (Exception e) {
+                } else {
+                    if (buf.equals(lastBuffer) && line.cursor() == lastCursor) {
+                        tabCount++;
+                    } else {
+                        tabCount = 1;
+                        lastBuffer = buf;
+                        lastCursor = line.cursor();
+                    }
+
+                    if (tabCount == 1) {
+                        try {
+                            reader.getTerminal().writer().print("\u0007");
+                            reader.getTerminal().writer().flush();
+                        } catch (Exception e) {
+                        }
+                    } else if (tabCount >= 2) {
+                        List<String> sortedMatches = new ArrayList<>(matches);
+                        java.util.Collections.sort(sortedMatches);
+                        try {
+                            reader.getTerminal().writer().println();
+                            reader.getTerminal().writer().println(String.join("  ", sortedMatches));
+                            reader.getTerminal().writer().flush();
+                            reader.callWidget(LineReader.REDRAW_LINE);
+                        } catch (Exception e) {
+                        }
                     }
                 }
             }
@@ -490,4 +497,22 @@ public class Main {
 
         return null;
     }
+
+    private static String getLongestCommonPrefix(java.util.Set<String> matches) {
+        if (matches == null || matches.isEmpty()) {
+            return "";
+        }
+        String[] arr = matches.toArray(new String[0]);
+        String prefix = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            while (arr[i].indexOf(prefix) != 0) {
+                prefix = prefix.substring(0, prefix.length() - 1);
+                if (prefix.isEmpty()) {
+                    return "";
+                }
+            }
+        }
+        return prefix;
+    }
 }
+
