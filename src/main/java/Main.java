@@ -36,12 +36,25 @@ public class Main {
             if (lastSpace >= 0) {
                 // Filename completion
                 String argPrefix = buf.substring(lastSpace + 1);
+                String dirPath = "";
+                String filePrefix = argPrefix;
+                File targetDir = currentDirectory;
+
+                int lastSlashIndex = argPrefix.lastIndexOf('/');
+                if (lastSlashIndex >= 0) {
+                    dirPath = argPrefix.substring(0, lastSlashIndex + 1);
+                    filePrefix = argPrefix.substring(lastSlashIndex + 1);
+                    targetDir = new File(currentDirectory, dirPath);
+                }
+
                 java.util.Set<String> fileMatches = new java.util.LinkedHashSet<>();
-                File[] dirFiles = currentDirectory.listFiles();
-                if (dirFiles != null) {
-                    for (File f : dirFiles) {
-                        if (f.isFile() && f.getName().startsWith(argPrefix)) {
-                            fileMatches.add(f.getName());
+                if (targetDir.exists() && targetDir.isDirectory()) {
+                    File[] dirFiles = targetDir.listFiles();
+                    if (dirFiles != null) {
+                        for (File f : dirFiles) {
+                            if (f.getName().startsWith(filePrefix)) {
+                                fileMatches.add(dirPath + f.getName());
+                            }
                         }
                     }
                 }
