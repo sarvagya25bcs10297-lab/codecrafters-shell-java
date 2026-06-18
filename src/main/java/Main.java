@@ -527,19 +527,29 @@ public class Main {
                 }
             }
             else if (cmd.equals("jobs")) {
+                java.util.List<Job> toRemove = new java.util.ArrayList<>();
                 int totalJobs = backgroundJobsList.size();
                 for (int i = 0; i < totalJobs; i++) {
                     Job job = backgroundJobsList.get(i);
+                    char marker = ' ';
+                    if (i == totalJobs - 1) {
+                        marker = '+';
+                    } else if (i == totalJobs - 2) {
+                        marker = '-';
+                    }
                     if (job.process.isAlive()) {
-                        char marker = ' ';
-                        if (i == totalJobs - 1) {
-                            marker = '+';
-                        } else if (i == totalJobs - 2) {
-                            marker = '-';
-                        }
                         out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Running", job.command);
+                    } else {
+                        // Strip trailing " &" from the command for Done display
+                        String doneCmd = job.command;
+                        if (doneCmd.endsWith(" &")) {
+                            doneCmd = doneCmd.substring(0, doneCmd.length() - 2);
+                        }
+                        out.printf("[%d]%c  %-24s%s\n", job.id, marker, "Done", doneCmd);
+                        toRemove.add(job);
                     }
                 }
+                backgroundJobsList.removeAll(toRemove);
             }
             else {
                 File file = findExecutable(cmd);
