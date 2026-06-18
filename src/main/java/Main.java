@@ -19,6 +19,7 @@ public class Main {
     private static String lastBuffer = "";
     private static int lastCursor = -1;
     private static int tabCount = 0;
+    static int backgroundJobCount = 0;
     private static java.util.Map<String, String> commandCompletions = new java.util.HashMap<>();
 
     public static void main(String[] args) throws Exception {
@@ -527,6 +528,12 @@ public class Main {
                             commandList.add(parts[i]);
                         }
 
+                        boolean isBackground = false;
+                        if (commandList.size() > 0 && commandList.get(commandList.size() - 1).equals("&")) {
+                            isBackground = true;
+                            commandList.remove(commandList.size() - 1);
+                        }
+
                         // Close file streams before ProcessBuilder starts so it can take over the files
                         if (out != System.out) {
                             out.close();
@@ -562,7 +569,13 @@ public class Main {
                                 (existing, prepend) -> prepend + File.pathSeparator + existing);
 
                         Process process = pb.start();
-                        process.waitFor();
+                        
+                        if (isBackground) {
+                            backgroundJobCount++;
+                            System.out.println("[" + backgroundJobCount + "] " + process.pid());
+                        } else {
+                            process.waitFor();
+                        }
 
                     } catch (Exception e) {
                         e.printStackTrace();
