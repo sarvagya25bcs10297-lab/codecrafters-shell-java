@@ -58,6 +58,10 @@ public class Main {
                     List<String> scriptMatches = new ArrayList<>();
                     try {
                         ProcessBuilder pb = new ProcessBuilder(completerScript, cmdArg, curWord, prevWord);
+                        String compLine = line.line();
+                        int compPoint = compLine.substring(0, line.cursor()).getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                        pb.environment().put("COMP_LINE", compLine);
+                        pb.environment().put("COMP_POINT", String.valueOf(compPoint));
                         pb.directory(currentDirectory);
                         Process process = pb.start();
 
