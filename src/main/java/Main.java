@@ -528,7 +528,7 @@ public class Main {
                 }
             }
             else if (cmd.equals("jobs")) {
-                reapJobs();
+                printAndReapJobs(out);
             }
             else {
                 File file = findExecutable(cmd);
