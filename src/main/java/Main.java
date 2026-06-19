@@ -480,7 +480,7 @@ public class Main {
                         List<String> commandList = new ArrayList<>();
                         commandList.add(execFile.getName());
                         for (int i = 1; i < cmdParts.size(); i++) {
-                            commandList.add(cmdParts[i]);
+                            commandList.add(cmdParts.get(i));
                         }
 
                         ProcessBuilder pb = new ProcessBuilder(commandList);
