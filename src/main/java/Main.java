@@ -473,10 +473,18 @@ public class Main {
                     }
 
                     if (hasBuiltin) {
+                        final java.io.PrintStream finalOut = out;
+                        final java.io.PrintStream finalErr = errOut;
+                        final File finalOutFile = outFile;
+                        final boolean finalAppendOutput = appendOutput;
+                        final File finalErrFile = errFile;
+                        final boolean finalAppendError = appendError;
+                        final String[] finalParts = parts;
+
                         // Sequential execution in a Runnable (either run immediately or in a Thread)
                         Runnable pipelineRunnable = () -> {
-                            java.io.PrintStream threadOut = out;
-                            java.io.PrintStream threadErr = errOut;
+                            java.io.PrintStream threadOut = finalOut;
+                            java.io.PrintStream threadErr = finalErr;
 
                             byte[] currentInput = new byte[0];
                             for (int i = 0; i < commandsList.size(); i++) {
@@ -521,11 +529,11 @@ public class Main {
                                     pb.redirectInput(ProcessBuilder.Redirect.PIPE);
 
                                     if (i == commandsList.size() - 1) {
-                                        if (outFile != null) {
-                                            if (appendOutput) {
-                                                pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
+                                        if (finalOutFile != null) {
+                                            if (finalAppendOutput) {
+                                                pb.redirectOutput(ProcessBuilder.Redirect.appendTo(finalOutFile));
                                             } else {
-                                                pb.redirectOutput(outFile);
+                                                pb.redirectOutput(finalOutFile);
                                             }
                                         } else {
                                             pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
@@ -534,11 +542,11 @@ public class Main {
                                         pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
                                     }
 
-                                    if (errFile != null) {
-                                        if (appendError) {
-                                            pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
+                                    if (finalErrFile != null) {
+                                        if (finalAppendError) {
+                                            pb.redirectError(ProcessBuilder.Redirect.appendTo(finalErrFile));
                                         } else {
-                                            pb.redirectError(errFile);
+                                            pb.redirectError(finalErrFile);
                                         }
                                     } else {
                                         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -592,7 +600,7 @@ public class Main {
                             thread.start();
 
                             int nextId = getSmallestAvailableJobId();
-                            String cmdString = String.join(" ", parts);
+                            String cmdString = String.join(" ", finalParts);
                             long pid = ProcessHandle.current().pid();
                             backgroundJobsList.add(new Job(nextId, pid, cmdString, new ThreadProcess(thread, pid)));
                             System.out.println("[" + nextId + "] " + pid);
