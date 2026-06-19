@@ -398,6 +398,14 @@ public class Main {
             parts = filteredParts.toArray(new String[0]);
             String cmd = parts[0];
 
+            boolean isPipeline = false;
+            for (String part : parts) {
+                if (part.equals("|")) {
+                    isPipeline = true;
+                    break;
+                }
+            }
+
             File outFile = null;
             if (outputFile != null) {
                 outFile = new File(outputFile);
@@ -430,7 +438,123 @@ public class Main {
                     errOut = new java.io.PrintStream(new java.io.FileOutputStream(errFile, appendError));
                 }
 
-                if (cmd.equals("exit")) {
+                if (isPipeline) {
+                    // Parse pipeline commands
+                    List<List<String>> commandsList = new ArrayList<>();
+                    List<String> currentCommand = new ArrayList<>();
+                    for (String part : parts) {
+                        if (part.equals("|")) {
+                            if (!currentCommand.isEmpty()) {
+                                commandsList.add(currentCommand);
+                                currentCommand = new ArrayList<>();
+                            }
+                        } else {
+                            currentCommand.add(part);
+                        }
+                    }
+                    if (!currentCommand.isEmpty()) {
+                        commandsList.add(currentCommand);
+                    }
+
+                    // Check background status from the last command
+                    boolean isBackground = false;
+                    List<String> lastCommandParts = commandsList.get(commandsList.size() - 1);
+                    if (!lastCommandParts.isEmpty() && lastCommandParts.get(lastCommandParts.size() - 1).equals("&")) {
+                        isBackground = true;
+                        lastCommandParts.remove(lastCommandParts.size() - 1);
+                    }
+
+                    // Resolve executables for all commands in the pipeline
+                    List<ProcessBuilder> builders = new ArrayList<>();
+                    boolean allExecutableFound = true;
+                    for (List<String> cmdParts : commandsList) {
+                        if (cmdParts.isEmpty()) continue;
+                        String pipelineCmd = cmdParts.get(0);
+                        File execFile = findExecutable(pipelineCmd);
+                        if (execFile == null) {
+                            errOut.println(pipelineCmd + ": command not found");
+                            allExecutableFound = false;
+                            break;
+                        }
+
+                        List<String> commandList = new ArrayList<>();
+                        commandList.add(execFile.getName());
+                        for (int i = 1; i < cmdParts.size(); i++) {
+                            commandList.add(cmdParts[i]);
+                        }
+
+                        ProcessBuilder pb = new ProcessBuilder(commandList);
+                        pb.directory(currentDirectory);
+                        
+                        // Prepend the executable's parent directory to PATH
+                        String parentDir = execFile.getParent() != null ? execFile.getParent() : ".";
+                        pb.environment().merge("PATH", parentDir,
+                                (existing, prepend) -> prepend + File.pathSeparator + existing);
+
+                        builders.add(pb);
+                    }
+
+                    if (allExecutableFound && !builders.isEmpty()) {
+                        // Close out and errOut if they are redirected files so subprocesses can write to them
+                        if (out != System.out) {
+                            out.close();
+                            out = System.out;
+                        }
+                        if (errOut != System.out) {
+                            errOut.close();
+                            errOut = System.out;
+                        }
+
+                        // Configure redirection for all builders in the pipeline
+                        for (int i = 0; i < builders.size(); i++) {
+                            ProcessBuilder pb = builders.get(i);
+                            
+                            // Set error redirection
+                            if (errFile != null) {
+                                if (appendError) {
+                                    pb.redirectError(ProcessBuilder.Redirect.appendTo(errFile));
+                                } else {
+                                    pb.redirectError(errFile);
+                                }
+                            } else {
+                                pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+                            }
+
+                            // Set input redirection for the first process
+                            if (i == 0) {
+                                pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+                            }
+
+                            // Set output redirection for the last process
+                            if (i == builders.size() - 1) {
+                                if (outFile != null) {
+                                    if (appendOutput) {
+                                        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(outFile));
+                                    } else {
+                                        pb.redirectOutput(outFile);
+                                    }
+                                } else {
+                                    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                                }
+                            }
+                        }
+
+                        // Start the pipeline
+                        List<Process> processes = ProcessBuilder.startPipeline(builders);
+
+                        if (isBackground) {
+                            int nextId = getSmallestAvailableJobId();
+                            String cmdString = String.join(" ", parts);
+                            Process lastProcess = processes.get(processes.size() - 1);
+                            backgroundJobsList.add(new Job(nextId, lastProcess.pid(), cmdString, lastProcess));
+                            System.out.println("[" + nextId + "] " + lastProcess.pid());
+                        } else {
+                            for (Process p : processes) {
+                                p.waitFor();
+                            }
+                        }
+                    }
+                } else if (cmd.equals("exit")) {
                 int status = 0;
                 if (parts.length > 1) {
                     try {
