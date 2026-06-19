@@ -19,7 +19,6 @@ public class Main {
     private static String lastBuffer = "";
     private static int lastCursor = -1;
     private static int tabCount = 0;
-    static int backgroundJobCount = 0;
     static class Job {
         int id;
         long pid;
@@ -586,10 +585,10 @@ public class Main {
                         Process process = pb.start();
                         
                         if (isBackground) {
-                            backgroundJobCount++;
+                            int nextId = getSmallestAvailableJobId();
                             String cmdString = String.join(" ", parts);
-                            backgroundJobsList.add(new Job(backgroundJobCount, process.pid(), cmdString, process));
-                            System.out.println("[" + backgroundJobCount + "] " + process.pid());
+                            backgroundJobsList.add(new Job(nextId, process.pid(), cmdString, process));
+                            System.out.println("[" + nextId + "] " + process.pid());
                         } else {
                             process.waitFor();
                         }
@@ -611,6 +610,23 @@ public class Main {
         }
     } // end of while (true)
 } // end of main
+
+    static int getSmallestAvailableJobId() {
+        int id = 1;
+        while (true) {
+            boolean found = false;
+            for (Job job : backgroundJobsList) {
+                if (job.id == id) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return id;
+            }
+            id++;
+        }
+    }
 
     static void reapJobs() {
         if (backgroundJobsList.isEmpty()) return;
